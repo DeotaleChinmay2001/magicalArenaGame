@@ -1,35 +1,49 @@
 import { Player } from './Player';
-import { Dice } from './Dice';
 
 export class Game {
-    private dice: Dice;
+    player1: Player;
+    player2: Player;
+    currentPlayer: Player;
+    otherPlayer: Player;
 
-    constructor(
-        private player1: Player,
-        private player2: Player
-    ) {
-        this.dice = new Dice();
+    constructor(player1: Player, player2: Player) {
+        this.player1 = player1;
+        this.player2 = player2;
+        this.currentPlayer = player1.health < player2.health ? player1 : player2;
+        this.otherPlayer = this.currentPlayer === player1 ? player2 : player1;
     }
 
-    start(): void {
-        while (!this.isGameOver()) {
-            this.takeTurn();
+    playTurn(): string {
+        const attackRoll = Math.floor(Math.random() * 6) + 1;
+        const defenseRoll = Math.floor(Math.random() * 6) + 1;
+
+        const attackDamage = this.currentPlayer.attack * attackRoll;
+        const defenseValue = this.otherPlayer.strength * defenseRoll;
+        const damageDealt = Math.max(attackDamage - defenseValue, 0);
+        this.otherPlayer.health -= damageDealt;
+
+        let log = `Player ${this.currentPlayer === this.player1 ? 1 : 2} attacks and rolls ${attackRoll}. ` +
+                  `Player ${this.otherPlayer === this.player1 ? 1 : 2} defends and rolls ${defenseRoll}. ` +
+                  `Damage dealt: ${damageDealt}. ` +
+                  `Player ${this.otherPlayer === this.player1 ? 1 : 2} health: ${this.otherPlayer.health}.`;
+
+        if (this.otherPlayer.health <= 0) {
+            log += ` Player ${this.otherPlayer === this.player1 ? 1 : 2} dies.`;
+            return log;
         }
 
-        const winner = this.player1.isAlive() ? 'Player 1' : 'Player 2';
-        console.log(`${winner} wins!`);
+        // Swap current and other player
+        [this.currentPlayer, this.otherPlayer] = [this.otherPlayer, this.currentPlayer];
+        return log;
     }
 
-    private takeTurn(): void {
-        const attacker = this.player1.health <= this.player2.health ? this.player1 : this.player2;
-        const defender = attacker === this.player1 ? this.player2 : this.player1;
-
-        attacker.attackOpponent(defender, this.dice);
-
-        console.log(`Player 1: ${this.player1.health} HP, Player 2: ${this.player2.health} HP`);
+    isGameOver(): boolean {
+        return this.player1.health <= 0 || this.player2.health <= 0;
     }
 
-    private isGameOver(): boolean {
-        return !this.player1.isAlive() || !this.player2.isAlive();
+    getWinner(): string {
+        if (this.player1.health <= 0) return 'Player 2 wins!';
+        if (this.player2.health <= 0) return 'Player 1 wins!';
+        return 'No winner yet.';
     }
 }
